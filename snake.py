@@ -1,4 +1,5 @@
 import pygame as py
+from random import randrange
 
 
 def draw_board(surface):
@@ -15,29 +16,50 @@ class Snake:
         self.dir = right
         self.event = []
         self.eaten = False
+        self.fruit = new_fruit(self)
 
     def update(self):
+        # Change directions mechanism
         if self.event:
-            k = self.event.pop()
-            if k != -self.dir:
-                self.dir = k
+            self.dir = self.event.pop()
 
         temp = py.Vector2(self.body[-1].x, self.body[-1].y)
+
+        # Moving forward mechanism
         for a in range(len(self.body) - 1, 0, -1):
             self.body[a] = py.Vector2(self.body[a - 1].x, self.body[a - 1].y)
         self.body[0] += self.dir
         self.body[0].x %= width // tile
         self.body[0].y %= height // tile
 
-        if self.eaten:
+        # Fruit eaten and body size increase mechanism
+        if self.body[0] == self.fruit or self.eaten:
             self.body.append(temp)
             self.eaten = False
+            self.fruit = new_fruit(self)
+
+        # Body eating mechanism
+        for a in range(1, len(self.body)):
+            if self.body[0] == self.body[a]:
+                self.body = self.body[:a]
+                break
 
     def show(self, surface):
+        x_, y_ = self.fruit.x * tile, self.fruit.y * tile
+        py.draw.rect(surface, (34, 139, 34), py.Rect(x_, y_, tile, tile))
+        # py.draw.rect(surface, (0, 0, 0), py.Rect(x_, y_, tile, tile), 1)
+
         for a in range(len(self.body)):
             x_, y_ = self.body[a].x * tile, self.body[a].y * tile
             py.draw.rect(surface, (60, 63, 65), py.Rect(x_, y_, tile, tile))
-            py.draw.rect(surface, (0, 0, 0), py.Rect(x_, y_, tile, tile), 1)
+            # py.draw.rect(surface, (0, 0, 0), py.Rect(x_, y_, tile, tile), 1)
+
+
+def new_fruit(snake):
+    new_vector = py.Vector2(randrange(width // tile), randrange(height // tile))
+    if new_vector not in snake.body:
+        return new_vector
+    return new_fruit(snake)
 
 
 py.init()
@@ -65,6 +87,13 @@ frames = 0
 
 player1 = Snake()
 
+
+def check(direction, player):
+    if player.event:
+        return direction not in [player.event[-1], -player.event[-1]]
+    return direction not in [-player.dir, player.dir]
+
+
 while running:
     window.fill((255, 255, 255))
     clock.tick(frame_rate)
@@ -74,7 +103,7 @@ while running:
         if event.type == py.QUIT:
             running = False
         if event.type == py.KEYDOWN:
-            if event.key in directions:
+            if event.key in directions and check(directions[event.key], player1):
                 player1.event[0:0] = [directions[event.key]]
 
         if event.type == py.MOUSEBUTTONDOWN:
